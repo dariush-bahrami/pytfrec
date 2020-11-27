@@ -2,7 +2,7 @@
 
 import tensorflow as tf
 import matplotlib.pyplot as plt
-from tfrec_tools.general import *
+from pytfrec.general import *
 from functools import partial
 
 def decode_image(image, image_size, channels):
