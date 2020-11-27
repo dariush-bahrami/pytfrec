@@ -5,28 +5,29 @@ import matplotlib.pyplot as plt
 from pytfrec.general import *
 from functools import partial
 
-def decode_image(image, image_size, channels):
+def decode_image(image, image_size, channels, normalize_scale):
     image = tf.io.decode_jpeg(image, channels=channels)
     image = tf.image.resize(image, image_size)
     image = tf.cast(image, tf.float32)
+    image = image / normalize_scale
     return image
 
 
-def read_tfrecord(example, image_size, channels, labeled):
+def read_tfrecord(example, image_size, channels, labeled, normalize_scale):
     # Features may have different names in case of error chack that
     tfrecord_format = {'image': tf.io.FixedLenFeature([], tf.string)}
     if labeled:
         tfrecord_format['target'] = tf.io.FixedLenFeature([], tf.int64)
 
     example = tf.io.parse_single_example(example, tfrecord_format)
-    image = decode_image(example["image"], image_size, channels)
+    image = decode_image(example["image"], image_size, channels, normalize_scale)
     if labeled:
         label = tf.cast(example["target"], tf.int32)
         return image, label
     return image
 
 
-def load_dataset(filenames, image_size, channels, labeled, ordered):
+def load_dataset(filenames, image_size, channels, labeled, ordered, normalize_scale):
     ignore_order = tf.data.Options()
     ignore_order.experimental_deterministic = ordered  # disable order, increase speed
     dataset = tf.data.TFRecordDataset(
@@ -37,7 +38,8 @@ def load_dataset(filenames, image_size, channels, labeled, ordered):
     map_func = partial(read_tfrecord,
                        image_size=image_size,
                        channels=channels,
-                       labeled=labeled)
+                       labeled=labeled,
+                       normalize_scale=normalize_scale)
     dataset = dataset.map(map_func,
                           num_parallel_calls=tf.data.experimental.AUTOTUNE)
     # returns a dataset of (image, label) pairs if labeled=True or just images if labeled=False
@@ -49,12 +51,14 @@ def get_dataset_from_file_names(filenames,
                                 batch_size,
                                 channels=3,
                                 labeled=True,
-                                ordered=False):
+                                ordered=False,
+                                normalize_scale=255):
     dataset = load_dataset(filenames,
                            image_size,
                            channels,
                            labeled=labeled,
-                           ordered=ordered)
+                           ordered=ordered,
+                           normalize_scale=normalize_scale)
     dataset = dataset.shuffle(2048)
     dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
     dataset = dataset.batch(batch_size)
@@ -67,13 +71,16 @@ def get_datasets(tfrecs_dir: str,
                  validation_data_ratio=0,
                  channels=3,
                  labeled=True,
-                 ordered=False):
+                 ordered=False,
+                 normalize_scale=255):
     datasets = {}
     train_file_names, validation_file_names = get_file_names(
         tfrecs_dir, validation_data_ratio)
-    datasets['train'] = get_dataset_from_file_names(train_file_names,
-                                                    image_size, batch_size,
-                                                    channels, labeled, ordered)
+    datasets['train'] = get_dataset_from_file_names(train_file_names, image_size, batch_size,
+                                                    channels=channels,
+                                                    labeled=labeled,
+                                                    ordered=ordered,
+                                                    normalize_scale=normalize_scale)
     assert type(validation_data_ratio) == float
     assert validation_data_ratio >= 0
     if validation_data_ratio:

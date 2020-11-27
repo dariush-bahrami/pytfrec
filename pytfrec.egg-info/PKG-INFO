@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: pytfrec
-Version: 0.0.2
+Version: 0.0.3
 Summary: Pythonic tools for TFRecord files
 Home-page: https://github.com/dariush-bahrami/pytfrec
 Author: dAriush Bahrami

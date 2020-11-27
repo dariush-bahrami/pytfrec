@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pytfrec", # Replace with your own username
-    version="0.0.2",
+    version="0.0.3",
     author="dAriush Bahrami",
     author_email="dariush.bahrami@ut.ac.ir",
     description="Pythonic tools for TFRecord files",
